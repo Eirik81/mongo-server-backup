@@ -19,6 +19,7 @@ function runMongodump(done) {
     _.each(settings.mongodumpParams, function (argValue, argName) {
         args.push("--" + argName, argValue);
     });
+    log("Running mongodump...");
     const mongodump = spawn(settings.mongodumpPath, args);
    
     mongodump.stderr.on("data", (data) => {
@@ -67,11 +68,13 @@ function main() {
     backupInProgress = true;
     runMongodump(function () {        
         createZipFile(function () {
+            log ("Uploading " + getZipFilename() + " to server...");
             client.scp(getZipLocalFilename(), settings.serverSettings, function (err) {
                 if (err) {
                     log(err);
                 } else {                    
                     log("Backup uploaded to " + getZipRemoteFilename());
+                    log ("Time to next backup: " + (settings.backupInterval / 3600000) + " hours");
                     currentBackupNumber = (currentBackupNumber + 1) % settings.backupCount;
                 }
                 backupInProgress = false;
