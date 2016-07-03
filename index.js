@@ -27,6 +27,7 @@ function runMongodump(done) {
 
     mongodump.on("close", (code) => {
         if (code === 0) {
+            log("Database backed up to " + settings.mongoOutputFolder);
             done();
         } else {
             backupInProgress = false;
@@ -35,13 +36,22 @@ function runMongodump(done) {
 }
 
 function getZipFilename() {
-    return settings.zipOutputFolder + "/" + settings.backupName + (currentBackupNumber + 1) + ".zip";
+    return settings.backupName + (currentBackupNumber + 1) + ".zip";
+}
+
+function getZipLocalFilename() {
+    return settings.zipOutputFolder + "/" + getZipFilename();
+}
+
+function getZipRemoteFilename() {
+    return settings.serverSettings.host + settings.serverSettings.path + "/" + getZipFilename();
 }
 
 function createZipFile(done) {
     var zip = new EasyZip();
     zip.zipFolder(settings.mongoOutputFolder, function () {
-        zip.writeToFile(getZipFilename());
+        zip.writeToFile(getZipLocalFilename());
+        log("Backup saved as " + getZipLocalFilename());
         done();
     });
 }
@@ -54,11 +64,11 @@ function main() {
     backupInProgress = true;
     runMongodump(function () {        
         createZipFile(function () {
-            client.scp(getZipFilename(), settings.serverSettings, function (err) {
+            client.scp(getZipLocalFilename(), settings.serverSettings, function (err) {
                 if (err) {
                     log(err);
                 } else {                    
-                    log("Backup saved as " + getZipFilename());
+                    log("Backup uploaded to " + getZipRemoteFilename());
                     currentBackupNumber = (currentBackupNumber + 1) % settings.backupCount;
                 }
                 backupInProgress = false;
