@@ -2,11 +2,11 @@
 
 var _ = require("lodash");
 var spawn = require("child_process").spawn;
-var EasyZip = require("easy-zip").EasyZip;
 var client = require("scp2");
 var settings = require("./settings");
 var currentBackupNumber = 0;
 var backupInProgress = false;
+var zipFolder = require('zip-folder');
         
 function log(msg) {
     var time = new Date().toISOString();
@@ -48,12 +48,15 @@ function getZipRemoteFilename() {
 }
 
 function createZipFile(done) {
-    var zip = new EasyZip();
-    zip.zipFolder(settings.mongoOutputFolder, function () {
-        zip.writeToFile(getZipLocalFilename());
-        log("Backup saved as " + getZipLocalFilename());
-        done();
-    });
+    log("Zipping " + settings.mongoOutputFolder + " ...");
+    zipFolder(settings.mongoOutputFolder, getZipLocalFilename(), function(err) {
+        if(err) {
+            log(err);
+        } else {
+            log("Backup saved as " + getZipLocalFilename());
+            done();
+        }
+    });    
 }
 
 function main() {
